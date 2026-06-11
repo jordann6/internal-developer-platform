@@ -4,24 +4,54 @@ A security-hardened Internal Developer Platform built on [Backstage](https://bac
 
 ## Architecture
 
-- **Backstage** on ECS Fargate (developer portal)
-- **RDS PostgreSQL** (service catalog, metadata)
-- **ECR** with image scanning on push
-- **KMS** customer managed key (encrypts all data at rest)
-- **VPC Flow Logs** (network audit trail)
-- **Secrets Manager** (database credentials)
-- **ALB** with access logging
+```mermaid
+flowchart LR
+    Dev[Developer] --> ALB[ALB<br/>access logs to S3]
+    ALB --> BS[Backstage<br/>ECS Fargate<br/>private subnets]
+    BS --> RDS[(RDS PostgreSQL<br/>service catalog)]
+    BS --> SM[Secrets Manager<br/>DB credentials]
+    ECR[ECR<br/>scan on push] -->|hardened image| BS
+    KMS[KMS CMK] -.->|encrypts at rest| RDS
+    KMS -.-> SM
+    KMS -.-> S3[S3<br/>ALB + flow logs]
+    VPC[VPC Flow Logs] --> S3
+```
 
-## Security
+| Component | Role |
+|---|---|
+| **Backstage on ECS Fargate** | Developer portal, software catalog, golden path templates |
+| **RDS PostgreSQL** | Service catalog and metadata persistence |
+| **ECR** | Container registry with image scanning on push |
+| **KMS customer-managed key** | Encryption at rest for every data store |
+| **Secrets Manager** | Database credentials, no secrets in code or task definitions |
+| **ALB** | Ingress with access logging to encrypted S3 |
+| **VPC Flow Logs** | Network audit trail |
 
-- Encryption at rest for all data stores (KMS)
-- Least privilege IAM (scoped task execution and task roles)
-- Network segmentation (private subnets for compute and data)
-- VPC Flow Logs for network auditing
-- Container hardening (drop all Linux capabilities, non-root user)
-- Image scanning on push (ECR)
-- ALB access logs to encrypted S3
-- No hardcoded credentials (Secrets Manager)
+## Security Hardening
+
+- Encryption at rest for all data stores via KMS customer-managed key
+- Least-privilege IAM with separately scoped task execution and task roles
+- Network segmentation: compute and data in private subnets only
+- Container hardening: non-root user, all Linux capabilities dropped
+- ECR image scanning on every push
+- ALB access logs and VPC Flow Logs delivered to encrypted S3
+- Zero hardcoded credentials (Secrets Manager + IAM roles)
+
+## Project Structure
+
+```
+backstage/                  Backstage app, Dockerfile, production config
+scripts/                    deploy.sh / teardown.sh wrappers
+terraform/
+  environments/dev/         Environment root wiring all modules
+  modules/
+    networking/             VPC, private subnets, flow logs
+    alb/                    Load balancer + access logging
+    ecs/                    Fargate service, task definitions, hardening
+    ecr/                    Registry with scan-on-push
+    database/               RDS PostgreSQL
+    secrets/                Secrets Manager wiring
+```
 
 ## Deploy
 
@@ -34,6 +64,8 @@ A security-hardened Internal Developer Platform built on [Backstage](https://bac
 ```bash
 ./scripts/teardown.sh
 ```
+
+Infrastructure is deployed on demand and torn down after use to keep AWS spend near zero.
 
 ## Stack
 
