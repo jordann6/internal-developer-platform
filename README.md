@@ -1,5 +1,7 @@
 # Internal Developer Platform (IDP)
 
+[![Validate](https://github.com/jordann6/internal-developer-platform/actions/workflows/validate.yml/badge.svg)](https://github.com/jordann6/internal-developer-platform/actions/workflows/validate.yml)
+
 A security-hardened Internal Developer Platform built on [Backstage](https://backstage.io), deployed to AWS ECS Fargate with RDS PostgreSQL. Features self-service golden path templates that scaffold production-ready microservices with IaC, CI/CD pipelines, and service catalog registration.
 
 ## Architecture
