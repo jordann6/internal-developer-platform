@@ -293,10 +293,8 @@ resource "aws_ecs_service" "backstage" {
     container_port   = 7007
   }
 
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 100
-  }
+  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 100
 
   tags = merge(var.tags, {
     Name = "${var.project_name}-backstage-service"
